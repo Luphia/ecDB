@@ -2,6 +2,7 @@
 Make DB operation Easy
 
 ## Install
+https://www.npmjs.com/package/ecdb
 ```shell
 npm install ecdb
 ```
