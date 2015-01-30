@@ -1,0 +1,26 @@
+{
+  "name": "ecdb",
+  "version": "0.0.0",
+  "description": "Make DB operation Easy",
+  "main": "index.js",
+  "scripts": {
+    "test": "./bin/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Luphia/ecDB.git"
+  },
+  "keywords": [
+    "database"
+  ],
+  "author": "Luphia Chang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Luphia/ecDB/issues"
+  },
+  "homepage": "https://github.com/Luphia/ecDB",
+  "dependencies": {
+    "mongodb": "^1.4.29",
+    "deasync": "0.0.8"
+  }
+}
