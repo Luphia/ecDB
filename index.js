@@ -1,5 +1,5 @@
 var driverPath = './DBDriver/'
-,	defaultDriver = 'EasyMongo'
+,	defaultDriver = 'EasyTingo'
 ,	util = require('util')
 ,	Collection = require('./lib/Collection.js')
 ,	Parser = require('./lib/Parser.js')
@@ -17,9 +17,9 @@ var driverPath = './DBDriver/'
 
  /*
 
-var edb=require('./services/Classes/EasyDB.js');
+var edb = require('ecdb'); // var edb = require('./index.js');
 var db = new edb();
-db.connect({url: 'mongodb://10.10.23.31:27010/easyDB'})
+db.connect();
 db.listData('users', 'where authtime > "2012-10-10"')
 db.listTable()
 db.postTable('user', {name: 'String', birth: 'Date'})

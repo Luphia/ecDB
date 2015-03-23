@@ -1,6 +1,6 @@
 {
   "name": "ecdb",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Make DB operation Easy",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,8 @@
   },
   "homepage": "https://github.com/Luphia/ecDB",
   "dependencies": {
+    "deasync": ">=0.0.10",
     "mongodb": "^1.4.29",
-    "deasync": ">=0.0.10"
+    "tingodb": "^0.3.4"
   }
 }
