@@ -112,6 +112,7 @@ EasyTingo.prototype.connect = function(option, callback) {
 	}
 
 	that.DB = new Tingo(option.pathname, {});
+	callback(false);
 
 	return true;
 };
