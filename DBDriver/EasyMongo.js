@@ -148,6 +148,11 @@ EasyMongo.prototype.getSchema = function(table, callback) {
 	});
 };
 EasyMongo.prototype.newSchema = function(table, schema, callback) {
+	if(typeof(table) == 'object') {
+		label = table.label;
+		table = table.name;
+	}
+
 	var rs
 	,	condition = { "name": table }
 	,	tableSchema = new Schema(schema)
@@ -155,6 +160,7 @@ EasyMongo.prototype.newSchema = function(table, schema, callback) {
 
 	tableSchema.setName(table);
 	tableSchema.setMaxSerialNum(0);
+	if(label) { tableSchema.setLabel(label); }
 
 	this.DB.collection('_tables').update(condition, tableSchema.toConfig(), {w:1, upsert: true}, function(err, data) {
 		if(err) { callback(err); }
@@ -162,25 +168,18 @@ EasyMongo.prototype.newSchema = function(table, schema, callback) {
 	});
 };
 EasyMongo.prototype.setSchema = function(table, schema, callback) {
+	if(typeof(table) == 'object') {
+		label = table.label;
+		table = table.name;
+	}
+
 	var rs
 	,	condition = { "name": table }
 	,	tableSchema = new Schema(schema);
 
+	tableSchema.setLabel(label);
+
 	this.DB.collection('_tables').update(condition, {"$set": tableSchema.toConfig()}, {w:1, upsert: true}, function(err, data) {
-		if(err) { callback(err); }
-		else { callback(err, true); }
-	});
-};
-EasyMongo.prototype.newSchema = function(table, schema, callback) {
-	var rs
-	,	condition = { "name": table }
-	,	tableSchema = new Schema(schema)
-	;
-
-	tableSchema.setName(table);
-	tableSchema.setMaxSerialNum(0);
-
-	this.DB.collection('_tables').update(condition, tableSchema.toConfig(), {w:1, upsert: true}, function(err, data) {
 		if(err) { callback(err); }
 		else { callback(err, true); }
 	});
@@ -253,7 +252,11 @@ EasyMongo.prototype.listTable = function(callback) {
 					// do not show protected table
 				}
 				else {
-					list.push(data[k].name);
+					var table = {
+						"name": data[k].name,
+						"label": (data[k].label || data[k].name)
+					};
+					list.push(table);
 				}
 			}
 

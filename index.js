@@ -42,6 +42,8 @@ var Schema = function(table) {
 	}
 ,	checkTable = function(table) {
 		!table && (table = '');
+		if(table.name) { table = table.name; }
+
 		table = table.trim();
 		if(table.length == 0) { return false; }
 
