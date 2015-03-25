@@ -148,6 +148,8 @@ EasyMongo.prototype.getSchema = function(table, callback) {
 	});
 };
 EasyMongo.prototype.newSchema = function(table, schema, callback) {
+	var label;
+
 	if(typeof(table) == 'object') {
 		label = table.label;
 		table = table.name;
@@ -168,6 +170,8 @@ EasyMongo.prototype.newSchema = function(table, schema, callback) {
 	});
 };
 EasyMongo.prototype.setSchema = function(table, schema, callback) {
+	var label;
+
 	if(typeof(table) == 'object') {
 		label = table.label;
 		table = table.name;

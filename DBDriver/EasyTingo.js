@@ -148,6 +148,8 @@ EasyTingo.prototype.getSchema = function(table, callback) {
 	});
 };
 EasyTingo.prototype.newSchema = function(table, schema, callback) {
+	var label;
+
 	if(typeof(table) == 'object') {
 		label = table.label;
 		table = table.name;
@@ -168,6 +170,8 @@ EasyTingo.prototype.newSchema = function(table, schema, callback) {
 	});
 };
 EasyTingo.prototype.setSchema = function(table, schema, callback) {
+	var label;
+
 	if(typeof(table) == 'object') {
 		label = table.label;
 		table = table.name;

@@ -40,15 +40,18 @@ var Schema = function(table) {
 		for(var key in data) { if(key.indexOf('_') != 0) size++; }
 		return size;
 	}
-,	checkTable = function(table) {
+,	checkTable = function(table, toObj) {
 		!table && (table = '');
-		if(table.name) { table = table.name; }
+		var result = table;
+		var tablename = table.name || table;
 
-		table = table.trim();
-		if(table.length == 0) { return false; }
+		tablename = tablename.trim();
+		if(tablename.length == 0) { return false; }
 
-		while(table.substr(0, 1) == '_') { table = table.substr(1); }
-		return table;
+		while(tablename.substr(0, 1) == '_') { tablename = tablename.substr(1); }
+		result.name = tablename;
+
+		return toObj? result: tablename;
 	}
 ,	checkSQL = function(sql) {
 	if(!sql || typeof sql != 'string') { return ''; }
@@ -396,7 +399,7 @@ module.exports = function(conf, logger) {
 		return rs;
 	}
 	,	setSchema = function(table, schema, replace) {
-		table = checkTable(table);
+		table = checkTable(table, true);
 		if(!table) { return false; }
 
 		var rs;
@@ -424,7 +427,7 @@ module.exports = function(conf, logger) {
 		return rs;
 	}
 	,	setSchemaByValue = function(table, value) {
-		table = checkTable(table);
+		table = checkTable(table, true);
 		if(!table) { return false; }
 
 		var rs
@@ -742,12 +745,19 @@ module.exports = function(conf, logger) {
 	}
 	,	postData = function(table, data) {
 		var check, rs, schema, id = [];
+		var label = table.label;
 		table = checkTable(table);
 		if(!table) { return false; }
 
 		schema = this.getSchema(table);
 		if(dataSize(schema.columns) == 0) {
-			this.setSchema(table, getValueSchema(data));
+			if(label) {
+				var tableOBJ = {"name": table, "label": label};
+				this.setSchema(tableOBJ, getValueSchema(data));
+			}
+			else {
+				this.setSchema(table, getValueSchema(data));
+			}
 		}
 
 		if(util.isArray(data)) {
