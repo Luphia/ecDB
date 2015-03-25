@@ -778,7 +778,7 @@ module.exports = function(conf, logger) {
 			cond = preCondiction(query.WHERE, schema),
 			rowData = compareSchema( data, schema );
 			db.DB.updateData(table, cond, {$set: rowData}, function(_err, _data) {
-				rs = _err? false, _data;
+				rs = _err? false: _data;
 			});
 
 		while(rs === undefined) {
