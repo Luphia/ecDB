@@ -351,7 +351,7 @@ EasyTingo.prototype.pageData = function(table, query, callback) {
 	var limit = query.LIMIT;
 
 	pick = limit.nb;
-	skip = limit.from;
+	skip = parseInt(limit.from) || 0;
 
 	var find = this.DB.collection(table).find().sort({'_id': -1}).skip(skip).limit(pick);
 
