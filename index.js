@@ -772,6 +772,21 @@ module.exports = function(conf, logger) {
 
 		return rs;
 	}
+	,	updateData = function(table, q, data) {
+		var schema = this.getSchema(table),
+			query = Parser.sql2ast( checkSQL(q) ),
+			cond = preCondiction(query.WHERE, schema),
+			rowData = compareSchema( data, schema );
+			db.DB.updateData(table, cond, {$set: rowData}, function(_err, _data) {
+				rs = _err? false, _data;
+			});
+
+		while(rs === undefined) {
+			require('deasync').runLoopOnce();
+		}
+
+		return rs;
+	}
 	,	replaceData = function(table, id, data) {
 		table = checkTable(table);
 		if(!table) { return false; }
