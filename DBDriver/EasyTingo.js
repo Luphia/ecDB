@@ -319,6 +319,16 @@ EasyTingo.prototype.listData = function(table, query, callback) {
 	var condition = parseCondition(query);
 	var limit;
 	var find = this.DB.collection(table).find(condition);
+	var sort = {}, orderBy;
+
+	if(orderBy = query['ORDER BY']) {
+		for(var k in orderBy) {
+			var column = orderBy[k]['column'];
+			sort[column] = orderBy[k]['order'].toUpperCase() == 'ASC'? 1: -1;
+		}
+
+		find = find.sort(sort);
+	}
 
 	if(limit = query.LIMIT) {
 		if(limit.nb > 0) {
@@ -337,17 +347,28 @@ EasyTingo.prototype.listData = function(table, query, callback) {
 EasyTingo.prototype.flowData = function(table, query, callback) {
 	var condition = parseCondition(query);
 	var limit;
+	var sort = {}, orderBy;
+	var find = this.DB.collection(table).find(condition);
+
+	if(orderBy = query['ORDER BY']) {
+		for(var k in orderBy) {
+			var column = orderBy[k]['column'];
+			sort[column] = orderBy[k]['order'].toUpperCase() == 'ASC'? 1: -1;
+		}
+
+		find = find.sort(sort);
+	}
+	else {
+		find = find.sort({'_id': -1});
+	}
 
 	if(limit = query.LIMIT) {
 		if(limit.from > 0) {
 			condition['_id'] = {"$lte": limit.from};
 		}
-	}
-	else {
-		limit = {};
-	}
 
-	var find = this.DB.collection(table).find(condition).sort({'_id': -1}).limit(limit.nb);
+		find = find.limit(limit.nb);
+	}
 
 	find.toArray(function(err, data) {
 		if(err) { callback(err); }
@@ -356,11 +377,25 @@ EasyTingo.prototype.flowData = function(table, query, callback) {
 };
 EasyTingo.prototype.pageData = function(table, query, callback) {
 	var limit = query.LIMIT;
+	var sort = {}, orderBy;
+	var find = this.DB.collection(table).find();
+
+	if(orderBy = query['ORDER BY']) {
+		for(var k in orderBy) {
+			var column = orderBy[k]['column'];
+			sort[column] = orderBy[k]['order'].toUpperCase() == 'ASC'? 1: -1;
+		}
+
+		find = find.sort(sort);
+	}
+	else {
+		find = find.sort({'_id': -1});
+	}
 
 	pick = limit.nb;
 	skip = parseInt(limit.from) || 0;
 
-	var find = this.DB.collection(table).find().sort({'_id': -1}).skip(skip).limit(pick);
+	find = find.skip(skip).limit(pick);
 
 	find.toArray(function(err, data) {
 		if(err) { callback(err); }
