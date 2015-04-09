@@ -315,7 +315,7 @@ EasyMongo.prototype.deleteTable = function(table, callback) {
 	);
 	this.DB.collection(table).remove(done);
 };
-EasyTingo.prototype.listData = function(table, query, callback) {
+EasyMongo.prototype.listData = function(table, query, callback) {
 	var condition = parseCondition(query);
 	var limit;
 	var find = this.DB.collection(table).find(condition);
