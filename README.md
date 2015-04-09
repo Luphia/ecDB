@@ -11,7 +11,7 @@ npm install ecdb
 ```shell
 var ECDB = require('ecdb');
 var ecDB = new ECDB();
-ecDB.connect({"url": "mongodb://127.0.0.1"});
+ecDB.connect();
 
 ecDB.listTable();
 ecDB.listData('TableName');
