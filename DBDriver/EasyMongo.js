@@ -344,7 +344,7 @@ EasyMongo.prototype.listData = function(table, query, callback) {
 		else { callback(err, data); }
 	});
 };
-EasyTingo.prototype.flowData = function(table, query, callback) {
+EasyMongo.prototype.flowData = function(table, query, callback) {
 	var condition = parseCondition(query);
 	var limit;
 	var sort = {}, orderBy;
@@ -375,7 +375,7 @@ EasyTingo.prototype.flowData = function(table, query, callback) {
 		else { callback(err, data); }
 	});
 };
-EasyTingo.prototype.pageData = function(table, query, callback) {
+EasyMongo.prototype.pageData = function(table, query, callback) {
 	var limit = query.LIMIT;
 	var sort = {}, orderBy;
 	var find = this.DB.collection(table).find();
