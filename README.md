@@ -16,3 +16,13 @@ ecDB.connect({"url": "mongodb://127.0.0.1"});
 ecDB.listTable();
 ecDB.listData('TableName');
 ```
+
+## Use MongoDB
+```shell
+var ECDB = require('ecdb');
+var ecDB = new ECDB({"driver": "EasyMongo"});
+ecDB.connect({"url": "mongodb://127.0.0.1"});
+
+ecDB.listTable();
+ecDB.listData('TableName');
+```
