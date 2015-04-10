@@ -274,6 +274,7 @@ ecDB.prototype.init = function(conf, logger) {
 	this.config(conf);
 	this.setDriverPath(conf.driverPath);
 	this.setDriver(conf.driver);
+	this.Parser = Parser;
 	return this;
 };
 ecDB.prototype.setDriver = function(driver) {
