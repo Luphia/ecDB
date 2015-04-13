@@ -170,6 +170,7 @@ EasyTingo.prototype.newSchema = function(table, schema, callback) {
 	});
 };
 EasyTingo.prototype.setSchema = function(table, schema, callback) {
+	var self = this;
 	var label;
 
 	if(typeof(table) == 'object') {
@@ -183,9 +184,11 @@ EasyTingo.prototype.setSchema = function(table, schema, callback) {
 
 	if(label) { tableSchema.setLabel(label); }
 
-	this.DB.collection('_tables').update(condition, {"$set": tableSchema.toConfig()}, {w:1, upsert: true}, function(err, data) {
-		if(err) { callback(err); }
-		else { callback(err, true); }
+	this.DB.collection('_tables').update(condition, {"$set": {"columns": 0}}, {w:1, upsert: true}, function(err, data) {
+		self.DB.collection('_tables').update(condition, {"$set": tableSchema.toConfig()}, {w:1, upsert: true}, function(err, data) {
+			if(err) { callback(err); }
+			else { callback(err, true); }
+		});
 	});
 };
 EasyTingo.prototype.getID = function(table, callback) {

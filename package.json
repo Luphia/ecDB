@@ -1,6 +1,6 @@
 {
   "name": "ecdb",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Make DB operation Easy",
   "main": "index.js",
   "scripts": {
