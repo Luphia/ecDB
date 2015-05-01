@@ -318,7 +318,7 @@ ecDB.prototype.sql = function(sql) {
 	switch(operate) {
 		case "SELECT":
 			var table = query.FROM[0].table;
-			return this.listData(table, query);
+			return this.listData(table, sql);
 			break;
 		case "UPDATE":
 			var table = query.UPDATE[0].table;
