@@ -258,7 +258,9 @@ var preCondiction = function(ast, schema) {
 	}
 	else {
 		for(var key in data) {
-			rs[key] = dataTransfer(data[key], schema.columns[key]);
+			if(schema.columns[key]) {
+				rs[key] = dataTransfer(data[key], schema.columns[key]);
+			}
 		}
 	}
 
