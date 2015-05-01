@@ -251,7 +251,7 @@ var preCondiction = function(ast, schema) {
 ,	compareSchema = function(data, schema) {
 	var rs = {};
 	!schema && (schema = { "columns": {} });
-	if(typeof schema != 'object' || !schema.strick) {
+	if(typeof schema != 'object' || schema.strick) {
 		for(var key in data) {
 			rs[key] = dataTransfer(data[key]);
 		}
