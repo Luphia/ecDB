@@ -20,15 +20,17 @@ var driverPath = './DBDriver/'
 var edb = require('ecdb'); // var edb = require('./index.js');
 var db = new edb();
 db.connect();
-db.listData('users', 'where authtime > "2012-10-10"')
-db.listTable()
-db.postTable('user', {name: 'String', birth: 'Date'})
-db.postData('user', {name: 'A', birth: '1982-04-01'})
-db.postData('user', {name: 'B', birth: '1988-09-18'})
-db.postData('user', {name: 'B', birth: '1995-08-23'})
+db.listData('users', 'where authtime > "2012-10-10"');
+db.listTable();
+db.postTable('user', {name: 'String', birth: 'Date', age: 1});
+db.postData('user', {name: 'A', birth: '1982-04-01', age: 2});
+db.postData('user', {name: 'B', birth: '1988-09-18', age: 3});
+db.postData('user', {name: 'B', birth: '1995-08-23', age: 4});
 db.listData('user', "birth < '1990-01-01' and birth > '1984-01-01'");
 db.postData('user', [{name: 'D', birth: '1982-05-01'}]);
-db.postData('user', [{name: 'D', birth: '1982-05-01'}, {name: 'E', birth: '1982-06-01'}, {name: 'F', birth: '1982-07-01'}])
+db.postData('user', [{name: 'D', birth: '1982-05-01'}, {name: 'E', birth: '1982-06-01'}, {name: 'F', birth: '1982-07-01'}]);
+db.sql("select * from user where birth > '1982-05-01'");
+db.sql("select * from user inner join info on user.x = info.x");
 
  */
 
