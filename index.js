@@ -22,7 +22,8 @@ var db = new edb();
 db.connect();
 db.listData('users', 'where authtime > "2012-10-10"');
 db.listTable();
-db.postTable('user', {name: 'String', birth: 'Date', age: 1});
+db.putData('tmp', 5, {name: 'String', birth: 'Date', age: 1});
+// db.postTable('user', {name: 'String', birth: 'Date', age: 1});
 db.postData('user', {name: 'A', birth: '1982-04-01', age: 2});
 db.postData('user', {name: 'B', birth: '1988-09-18', age: 3});
 db.postData('user', {name: 'B', birth: '1995-08-23', age: 4});
@@ -765,6 +766,8 @@ ecDB.prototype.postData = function(table, data) {
 		else {
 			this.setSchema(table, getValueSchema(data));
 		}
+
+		schema = this.getSchema(table);
 	}
 
 	if(util.isArray(data)) {
@@ -837,12 +840,27 @@ ecDB.prototype.replaceData = function(table, id, data) {
 	return rs;
 };
 ecDB.prototype.putData = function(table, id, data) {
+	var label = table.label;
 	table = checkTable(table);
+
 	if(!table) { return false; }
 
 	var rs, check
 	,	schema = this.getSchema(table)
 	,	query = Parser.sql2ast("WHERE _id = " + id);
+
+	if(dataSize(schema.columns) == 0) {
+		if(label) {
+			var tableOBJ = {"name": table, "label": label};
+			this.setSchema(tableOBJ, getValueSchema(data));
+		}
+		else {
+			this.setSchema(table, getValueSchema(data));
+		}
+
+		schema = this.getSchema(table);
+	}
+
 	query.WHERE = preCondiction( query.WHERE, schema );
 	data = compareSchema(data, schema);
 
