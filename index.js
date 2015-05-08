@@ -254,7 +254,7 @@ var preCondiction = function(ast, schema) {
 ,	compareSchema = function(data, schema) {
 	var rs = {};
 	!schema && (schema = { "columns": {} });
-	if(typeof schema != 'object' || schema.strick) {
+	if(typeof schema != 'object' || schema.strick === false) {
 		for(var key in data) {
 			rs[key] = dataTransfer(data[key]);
 		}
@@ -769,6 +769,7 @@ ecDB.prototype.postData = function(table, data) {
 
 		schema = this.getSchema(table);
 	}
+	schema.strict = false;
 
 	if(util.isArray(data)) {
 		var ID = this.getID(table, data.length);
