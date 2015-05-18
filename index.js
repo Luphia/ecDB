@@ -20,18 +20,28 @@ var driverPath = './DBDriver/'
 var edb = require('ecdb'); // var edb = require('./index.js');
 var db = new edb();
 db.connect();
-db.listData('users', 'where authtime > "2012-10-10"');
-db.listTable();
-db.putData('tmp', 5, {name: 'String', birth: 'Date', age: 1});
-// db.postTable('user', {name: 'String', birth: 'Date', age: 1});
-db.postData('user', {name: 'A', birth: '1982-04-01', age: 2});
-db.postData('user', {name: 'B', birth: '1988-09-18', age: 3});
-db.postData('user', {name: 'B', birth: '1995-08-23', age: 4});
-db.listData('user', "birth < '1990-01-01' and birth > '1984-01-01'");
-db.postData('user', [{name: 'D', birth: '1982-05-01'}]);
-db.postData('user', [{name: 'D', birth: '1982-05-01'}, {name: 'E', birth: '1982-06-01'}, {name: 'F', birth: '1982-07-01'}]);
-db.sql("select * from user where birth > '1982-05-01'");
-db.sql("select * from user inner join info on user.x = info.x");
+db.listData('users', 'where authtime > "2012-10-10"', function(e, d) {console.log(d);});
+db.listTable(function(e, d) {console.log(d);});
+db.putData('tmp', 5, {name: 'String', birth: 'Date', age: 1}, function(e, d) {console.log(d);});
+db.postTable('testuser', {name: 'String', birth: 'Date', age: 1}, function(e, d) {console.log(d);});
+db.postData('user', {name: 'A', birth: '1982-04-01', age: 2}, function(e, d) {console.log(d);});
+db.postData('testuser', {name: 'B', birth: '1988-09-18', age: 3}, function(e, d) {console.log(d);});
+db.postData('user', {name: 'B', birth: '1995-08-23', age: 4}, function(e, d) {console.log(d);});
+db.listData('user', "birth < '1990-01-01' and birth > '1984-01-01'", function(e, d) {console.log(d);});
+db.postData('user', [{name: 'D', birth: '1982-05-01'}], function(e, d) {console.log(d);});
+db.postData('user', [{name: 'D', birth: '1982-05-01'}, {name: 'E', birth: '1982-06-01'}, {name: 'F', birth: '1982-07-01'}], function(e, d) {console.log(d);});
+db.sql("select * from user where birth > '1982-05-01'", function(e, d) {console.log(d);});
+db.sql("select * from user inner join info on user.x = info.x", function(e, d) {console.log(d);});
+
+db.dataFind(
+[{name: 'A', birth: '1982-04-01', age: 10},{name: 'B', birth: '1983-04-01', age: 5},{name: 'C', birth: '1984-04-01', age: 20}],
+"select * from table where birth > '1983-01-01'",
+function(e, d) {console.log(d);}
+);
+
+db.putData('tmp2', 5, {name: 'String', birth: 'Date', age: 1}, function(e, d) {console.log(d);});
+db.sql("update Yo set a = 1, b = 'b', c = '1999-01-01'");
+db.sql("delete from user where _id > 3");
 
  */
 
@@ -243,7 +253,7 @@ var preCondiction = function(ast, schema) {
 
 		if(pos == -1) { continue; }
 
-		var column = tmp.slice(0, pos),
+		var column = tmp.slice(0, pos).trim(),
 			value = parseValue(tmp.slice(pos + 1));
 
 		rs[column] = value;
@@ -296,22 +306,24 @@ ecDB.prototype.config = function(config) {
 		driver: config.driver? config.driver: defaultDriver
 	};
 };
-ecDB.prototype.connect = function(option) {
-	var rs;
+ecDB.prototype.connect = function(option, callback) {
 	this.DB.connect(option, function(err) {
 		rs = !err;
+		if(typeof(callback) == 'function') {
+			callback(err, true);
+		}
+		else {
+			console.log('DB connect');
+		}
 	});
 
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
+	return true;
 };
 ecDB.prototype.disconnect = function() {
 	this.DB.disconnect();
 };
-ecDB.prototype.sql = function(sql) {
+ecDB.prototype.sql = function(sql, callback) {
+	var self = this;
 	var query = Parser.sql2ast(sql)
 	,	operate;
 
@@ -323,19 +335,23 @@ ecDB.prototype.sql = function(sql) {
 	switch(operate) {
 		case "SELECT":
 			var table = query.FROM[0].table;
-			return this.listData(table, sql);
+			this.listData(table, sql, callback);
 			break;
 		case "UPDATE":
 			var table = query.UPDATE[0].table;
-				schema = this.getSchema(table),
-				cond = preCondiction(query.WHERE, schema),
-				rowData = compareSchema( parseSet(query.SET), schema );
-			db.collection(table).update(cond, {$set: rowData}, {multi: true, upsert: true}, function(_err, _data) {
-				if(_err) {
-					this.logger.exception.error(_err);
-					return setResult(res.result, next, 0, 'update failed');
-				}
-				setResult(res.result, next, 1, 'number of affected rows: ' + _data);
+			this.getSchema(table, function(err, schema) {
+				var cond = preCondiction(query.WHERE, schema),
+					rowData = compareSchema( parseSet(query.SET), schema );
+
+				self.updateData(table, query, rowData, function(err, data) {
+					if(typeof(callback) == 'function') {
+						callback(err, data);
+					}
+					else {
+						console.log('execute SQL update');
+						console.log(err || data);
+					}
+				});
 			});
 			break;
 		case "INSERT":
@@ -344,17 +360,23 @@ ecDB.prototype.sql = function(sql) {
 			var table = query['DELETE FROM'][0].table,
 				cond = preCondiction(query.WHERE),
 				limit = query.LIMIT;
-			db.collection(table).remove(cond, {justOne: limit && (limit.nb == 1)}, function(_err, _data) {
-				if(_err) {
-					this.logger.exception.error(_err);
-					return setResult(res.result, next, 0, 'delete failed');
+
+			this.deleteData(table, query, function(err, data) {
+				if(typeof(callback) == 'function') {
+					callback(err, data);
 				}
-				setResult(res.result, next, 1, 'number of affected rows: ' + _data);
+				else {
+					console.log('execute SQL delete');
+					console.log(err || data);
+				}
+
 			});
 			break;
 	}
 };
-ecDB.prototype.getID = function(table, n) {
+
+ecDB.prototype.getID = function(table, n, callback) {
+	var self = this;
 	var rs, check;
 	table = checkTable(table);
 
@@ -362,34 +384,44 @@ ecDB.prototype.getID = function(table, n) {
 
 	this.DB.tableExist(table, function(err, data) {
 		check = err? false: data;
+
+		if(!check) {
+			self.postTable(table, {}, function() {
+				self.execGetID(table, n, callback);
+			});
+		}
+		else {
+			self.execGetID(table, n, callback);
+		}
 	});
+};
 
-	while(check === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	if(!check) {
-		this.postTable(table, {});
-	}	
-
+ecDB.prototype.execGetID = function(table, n, callback) {
 	if(n > 0) {
 		this.DB.getIDs(table, n, function(err, data) {
-			rs = err? false: data;
+			if(typeof(callback) == 'function') {
+				callback(err, data);
+			}
+			else {
+				console.log('get ID');
+				console.log(err || data);
+			}
 		});
 	}
 	else {
 		this.DB.getID(table, function(err, data) {
-			rs = err? false: data;
+			if(typeof(callback) == 'function') {
+				callback(err, data);
+			}
+			else {
+				console.log('get ID');
+				console.log(err || data);
+			}
 		});
 	}
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.getSchema = function(table) {
+
+ecDB.prototype.getSchema = function(table, callback) {
 	var rs;
 	table = checkTable(table);
 
@@ -398,15 +430,18 @@ ecDB.prototype.getSchema = function(table) {
 	this.DB.getSchema(table, function(err, data) {
 		rs = err? false: data;
 		if(rs) { rs.columns._id = 'Number'; }
+
+		if(typeof(callback) == 'function') {
+			callback(err, rs);
+		}
+		else {
+			console.log('get Schema');
+			console.log(err || rs);
+		}
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.setSchema = function(table, schema, replace) {
+ecDB.prototype.setSchema = function(table, schema, callback) {
+	var self = this;
 	table = checkTable(table, true);
 	if(!table) { return false; }
 
@@ -417,24 +452,32 @@ ecDB.prototype.setSchema = function(table, schema, replace) {
 		schema[key] = dataType(schema[key]);
 	}
 
-	if(this.getSchema(table)) {
-		this.DB.setSchema(table, schema, function(err, data) {
-			rs = !err;
-		});
-	}
-	else {
-		this.DB.newSchema(table, schema, function(err, data) {
-			rs = !err;
-		});
-	}
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
+	this.getSchema(table, function(err, _schema) {
+		if(_schema) {
+			self.DB.setSchema(table, schema, function(_err, _data) {
+				if(typeof(callback) == 'function') {
+					callback(_err, true);
+				}
+				else {
+					console.log('set Schema');
+					console.log(_err || true);
+				}
+			});
+		}
+		else {
+			self.DB.newSchema(table, schema, function(_err, _data) {
+				if(typeof(callback) == 'function') {
+					callback(_err, true);
+				}
+				else {
+					console.log('set Schema');
+					console.log(_err || true);
+				}
+			});
+		}
+	});
 };
-ecDB.prototype.setSchemaByValue = function(table, value) {
+ecDB.prototype.setSchemaByValue = function(table, value, callback) {
 	table = checkTable(table, true);
 	if(!table) { return false; }
 
@@ -446,30 +489,33 @@ ecDB.prototype.setSchemaByValue = function(table, value) {
 		tableSchema.columns[key] = valueType(value[key]);
 	}
 
-	this.DB.setSchema(table, tableSchema, function(err, data) {
+	this.DB.setSchema(table, tableSchema, function(err) {
 		rs = !err;
+		if(typeof(callback) == 'function') {
+			callback(err, rs);
+		}
+		else {
+			console.log('set Schema by value');
+			console.log(err || rs);
+		}
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.listTable = function() {
+ecDB.prototype.listTable = function(callback) {
 	var rs;
 
 	this.DB.listTable(function(err, data) {
 		rs = err? false: data;
+
+		if(typeof(callback) == 'function') {
+			callback(err, rs);
+		}
+		else {
+			console.log('list Table');
+			console.log(err || rs);
+		}
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.getTable = function(table) {
+ecDB.prototype.getTable = function(table, callback) {
 	table = checkTable(table);
 	if(!table) { return false; }
 
@@ -477,15 +523,17 @@ ecDB.prototype.getTable = function(table) {
 
 	this.DB.getTable(table, function(err, data) {
 		rs = err? false: data;
+
+		if(typeof(callback) == 'function') {
+			callback(err, rs);
+		}
+		else {
+			console.log('get Table');
+			console.log(err || rs);
+		}
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.postTable = function(table, schema) {
+ecDB.prototype.postTable = function(table, schema, callback) {
 	table = checkTable(table);
 	if(!table) { return false; }
 
@@ -493,15 +541,17 @@ ecDB.prototype.postTable = function(table, schema) {
 
 	this.DB.postTable(table, schema, function(err, data) {
 		rs = err? false: true;
+
+		if(typeof(callback) == 'function') {
+			callback(err, rs);
+		}
+		else {
+			console.log('post Table');
+			console.log(err || rs);
+		}
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.putTable = function(table, schema) {
+ecDB.prototype.putTable = function(table, schema, callback) {
 	table = checkTable(table);
 	if(!table) { return false; }
 
@@ -509,15 +559,17 @@ ecDB.prototype.putTable = function(table, schema) {
 
 	this.DB.putTable(table, schema, function(err, data) {
 		rs = err? false: data;
+
+		if(typeof(callback) == 'function') {
+			callback(err, rs);
+		}
+		else {
+			console.log('put Table');
+			console.log(err || rs);
+		}
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.cleanTable = function(table) {
+ecDB.prototype.cleanTable = function(table, callback) {
 	table = checkTable(table);
 	if(!table) { return false; }
 
@@ -525,15 +577,17 @@ ecDB.prototype.cleanTable = function(table) {
 
 	this.DB.deleteData(table, {}, function(err, data) {
 		rs = err? false: true;
+
+		if(typeof(callback) == 'function') {
+			callback(err, rs);
+		}
+		else {
+			console.log('clean Table');
+			console.log(err || rs);
+		}
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.deleteTable = function(table) {
+ecDB.prototype.deleteTable = function(table, callback) {
 	table = checkTable(table);
 	if(!table) { return false; }
 
@@ -541,47 +595,18 @@ ecDB.prototype.deleteTable = function(table) {
 
 	this.DB.deleteTable(table, function(err, data) {
 		rs = err? false: true;
-	});
 
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
-};
-ecDB.prototype.listData = function(table, query) {
-	table = checkTable(table);
-	if(!table) { return false; }
-
-	if(!query) { query = '' }
-	else {
-		query = checkSQL(query);
-	}
-
-	var rs
-	,	schema = this.getSchema(table)
-	,	cond = Parser.sql2ast(query);
-	cond.WHERE = preCondiction( cond.WHERE, schema );
-
-	this.DB.listData(table, cond, function(err, data) {
-		rs = err? false: data;
-		if(err) { rs = false; }
+		if(typeof(callback) == 'function') {
+			callback(err, rs);
+		}
 		else {
-			var collection = new Collection();
-			for(var key in data) {
-				collection.add( compareSchema(data[key], schema) );
-			}
-			rs = collection.toJSON();
+			console.log('delete Table');
+			console.log(err || rs);
 		}
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.flowData = function(table, query) {
+ecDB.prototype.listData = function(table, query, callback) {
+	var self = this;
 	table = checkTable(table);
 	if(!table) { return false; }
 
@@ -591,37 +616,80 @@ ecDB.prototype.flowData = function(table, query) {
 	}
 
 	var rs
-	,	schema = this.getSchema(table)
 	,	cond = Parser.sql2ast(query);
-	cond.WHERE = preCondiction( cond.WHERE, schema );
-	if(!cond.LIMIT) {
-		cond.LIMIT = {
-			"nb": defaultLimit
-		};
-	}
-	else if(!cond.LIMIT.nb) {
-		cond.LIMIT.nb = defaultLimit
-	}
 
-	this.DB.flowData(table, cond, function(err, data) {
-		rs = err? false: data;
-		if(err) { rs = false; }
-		else {
-			var collection = new Collection();
-			for(var key in data) {
-				collection.add( compareSchema(data[key], schema) );
+	this.getSchema(table, function(err, schema) {
+		cond.WHERE = preCondiction( cond.WHERE, schema );
+
+		self.DB.listData(table, cond, function(_err, data) {
+			rs = _err? false: data;
+			if(_err) { rs = false; }
+			else {
+				var collection = new Collection();
+				for(var key in data) {
+					collection.add( compareSchema(data[key], schema) );
+				}
+				rs = collection.toJSON();
+
+				if(typeof(callback) == 'function') {
+					callback(_err, rs);
+				}
+				else {
+					console.log('list Data');
+					console.log(_err || rs);
+				}
 			}
-			rs = collection.toJSON();
-		}
+		});
 	});
+};
+ecDB.prototype.flowData = function(table, query, callback) {
+	var self = this;
+	table = checkTable(table);
+	if(!table) { return false; }
 
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
+	if(!query) { query = '' }
+	else {
+		query = checkSQL(query);
 	}
 
-	return rs;
+	var rs
+	,	cond = Parser.sql2ast(query);
+
+	this.getSchema(table, function(err, schema) {
+		cond.WHERE = preCondiction( cond.WHERE, schema );
+
+		if(!cond.LIMIT) {
+			cond.LIMIT = {
+				"nb": defaultLimit
+			};
+		}
+		else if(!cond.LIMIT.nb) {
+			cond.LIMIT.nb = defaultLimit
+		}
+
+		self.DB.flowData(table, cond, function(_err, data) {
+			rs = _err? false: data;
+			if(_err) { rs = false; }
+			else {
+				var collection = new Collection();
+				for(var key in data) {
+					collection.add( compareSchema(data[key], schema) );
+				}
+				rs = collection.toJSON();
+
+				if(typeof(callback) == 'function') {
+					callback(_err, rs);
+				}
+				else {
+					console.log('flow Data');
+					console.log(_err || rs);
+				}
+			}
+		});
+	});
 };
-ecDB.prototype.pageData = function(table, query) {
+ecDB.prototype.pageData = function(table, query, callback) {
+	var self = this;
 	table = checkTable(table);
 
 	if(!table) { return false; }
@@ -632,9 +700,7 @@ ecDB.prototype.pageData = function(table, query) {
 	}
 
 	var rs
-	,	schema = this.getSchema(table)
 	,	cond = Parser.sql2ast(query);
-	;
 
 	if(!cond.LIMIT) {
 		cond.LIMIT = {"nb": defaultLimit};
@@ -643,280 +709,297 @@ ecDB.prototype.pageData = function(table, query) {
 		cond.LIMIT.nb = defaultLimit;
 	}
 
-	this.DB.pageData(table, cond, function(err, data) {
-		rs = err? false: data;
-		if(err) { rs = false; }
-		else {
-			var collection = new Collection();
-			for(var key in data) {
-				collection.add( compareSchema(data[key], schema) );
+	this.getSchema(table, function(err, schema) {
+		self.DB.pageData(table, cond, function(_err, data) {
+			rs = _err? false: data;
+			if(_err) { callback(_err); }
+			else {
+				var collection = new Collection();
+				for(var key in data) {
+					collection.add( compareSchema(data[key], schema) );
+				}
+				rs = collection.toJSON();
+
+				if(typeof(callback) == 'function') {
+					callback(_err, rs);
+				}
+				else {
+					console.log('page Data');
+					console.log(_err || data);
+				}
 			}
-			rs = collection.toJSON();
-		}
+		});
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.getData = function(table, id) {
+ecDB.prototype.getData = function(table, id, callback) {
+	var self = this;
 	table = checkTable(table);
 	if(!table) { return false; }
 
 	var rs
-	,	schema = this.getSchema(table)
 	,	cond = Parser.sql2ast("WHERE _id = " + id);
-	cond.WHERE = preCondiction(cond.WHERE, schema);
 
-	this.DB.getData(table, cond, function(err, data) {
-		rs = err? false: compareSchema(data, schema);
-	});
+	this.getSchema(table, function(err, schema) {
+		cond.WHERE = preCondiction(cond.WHERE, schema);
 
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
+		self.DB.getData(table, cond, function(_err, data) {
+			rs = err? false: compareSchema(data, schema);
 
-	return rs;
-};
-ecDB.prototype.find = function(table, data) {
-	table = checkTable(table);
-	if(!table) { return false; }
-
-	var rs
-	,	schema = this.getSchema(table)
-	;
-
-	this.DB.find(table, data, function(err, _data) {
-		if(err) { rs = false; }
-		else {
-			rs = [];
-			for(var key in _data) {
-				rs.push(compareSchema(_data[key], schema));
+			if(typeof(callback) == 'function') {
+				callback(_err, rs);
 			}
-		}
+			else {
+				console.log('get Data');
+				console.log(_err || rs);
+			}
+		});
 	});
+};
+ecDB.prototype.find = function(table, data, callback) {
+	var self = this;
+	table = checkTable(table);
+	if(!table) {
+		if(typeof(callback) == 'function') {
+			callback(err, false);
+		}
+		else {
+			console.log('nothing to find');
+		}
 
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
+		return false;
 	}
 
-	return rs;
+	var rs;
+	this.getSchema(table, function(err, schema) {
+		self.DB.find(table, data, function(_err, _data) {
+			if(err) { rs = false; }
+			else {
+				rs = [];
+				for(var key in _data) {
+					rs.push(compareSchema(_data[key], schema));
+				}
+			}
+
+			if(typeof(callback) == 'function') {
+				callback(_err, rs);
+			}
+			else {
+				console.log('find');
+				console.log(_err || rs);
+			}
+		});
+	});
 };
-ecDB.prototype.dataFind = function(data, sql) {
+
+ecDB.prototype.importData = function(data, callback) {
 	var rs;
 	var table = "_" + Math.random().toString(36).substring(7);
 	var jobs = 0;
-	if(typeof(sql) != 'string') { sql = ''; }
 
-	var search = Parser.sql2ast(sql);
-	search.WHERE = preCondiction(search.WHERE);
-	var where = 0;
-	for(var k in search.WHERE) {
-		where ++;
-	}
-
-	if(util.isArray(data)) {
-		for(var k in data) {
-
-			jobs++;
-			var query = Parser.sql2ast("WHERE _id = " + k);
-			query.WHERE = preCondiction(query.WHERE);
-
-			for(var kk in data[k]) {
-				data[k][kk] = checkValue(data[k][kk]);
-			}
-
-			if(where > 0) {
-				this.DB.putData(table, query, {"$set": data[k]}, function(err, _data) { jobs--; });
-			}
-		}
-
-		if(where == 0) {
-			return data;
-		}
-	}
-	else {
-		jobs++;
-		this.DB.putData(table, {}, data, function(err, _data) {
-			jobs--;
-		});
-	}
-	while(jobs > 0) { require('deasync').runLoopOnce(); }
-
-	this.DB.listData(table, search, function(err, _data) { rs = _data;});
-	while(rs === undefined) { require('deasync').runLoopOnce(); }
-
-	this.DB.deleteTable(table, function() {});
-	return rs;
+	this.postData(table, data, function(err, _data) {
+		callback(err, table);
+	});
 };
-ecDB.prototype.postData = function(table, data) {
+
+ecDB.prototype.dataFind = function(data, sql, callback) {
+	var self = this;
+	this.importData(data, function(err, table) {
+		self.listData(table, sql, function(_err, _data) {
+			self.deleteTable(table, function() {});
+
+			if(typeof(callback) == 'function') {
+				callback(_err, _data);
+			}
+			else {
+				console.log('data find');
+				console.log(_err || _data);
+			}
+		});
+	});
+};
+ecDB.prototype.postData = function(table, data, callback) {
+	var self = this;
 	var check, rs, schema, id = [];
 	var label = table.label;
 	table = checkTable(table);
 	if(!table) { return false; }
 
-	schema = this.getSchema(table);
-	if(dataSize(schema.columns) == 0) {
-		if(label) {
-			var tableOBJ = {"name": table, "label": label};
-			this.setSchema(tableOBJ, getValueSchema(data));
+	this.getSchema(table, function(err, schema) {
+		if(dataSize(schema.columns) == 0) {
+			var valueSchema = getValueSchema(data);
+			if(label) {
+				var tableOBJ = {"name": table, "label": label};
+				self.setSchema(tableOBJ, valueSchema, function() {});
+			}
+			else {
+				self.setSchema(table, valueSchema, function() {});
+			}
+
+			schema = {columns: valueSchema};
 		}
-		else {
-			this.setSchema(table, getValueSchema(data));
-		}
+		schema.strict = !!schema.strict;
 
-		schema = this.getSchema(table);
-	}
-	schema.strict = false;
+		var dl = util.isArray(data)? data.length: 1;
+		self.getID(table, dl, function(_err, ID) {
+			if(util.isArray(data)) {
+				for(var key in data) {
+					data[key] = compareSchema(data[key], schema);
+					data[key]._id = ID + parseInt(key);
+					id.push(data[key]._id);
+				}
+			}
+			else {
+				data = compareSchema(data, schema);
+				data._id = ID;
+				id.push(data._id);
+			}
 
-	if(util.isArray(data)) {
-		var ID = this.getID(table, data.length);
-		for(var key in data) {
-			data[key] = compareSchema(data[key], schema);
-			data[key]._id = ID + parseInt(key);
-			id.push(data[key]._id);
-		}
-	}
-	else {
-		data = compareSchema(data, schema);
-		data._id = this.getID(table);
-		id.push(data._id);
-	}
+			self.DB.postData(table, data, function(__err, _data) {
+				rs = err? false: id.join(', ');
 
-	this.DB.postData(table, data, function(err, _data) {
-		rs = err? false: id.join(', ');
-	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
-};
-ecDB.prototype.updateData = function(table, q, data) {
-	var rs,
-		schema = this.getSchema(table),
-		query = Parser.sql2ast( checkSQL(q) ),
-		cond = preCondiction(query.WHERE, schema),
-		rowData = compareSchema( data, schema );
-		this.DB.updateData(table, cond, {$set: rowData}, function(_err, _data) {
-			rs = _err? false: _data;
+				if(typeof(callback) == 'function') {
+					callback(__err, rs);
+				}
+				else {
+					console.log('post Data');
+					console.log(_err || _data);
+				}
+			});
 		});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
+	});
 };
-ecDB.prototype.replaceData = function(table, id, data) {
+ecDB.prototype.updateData = function(table, q, data, callback) {
+	var self = this;
+	var rs;
+
+	this.getSchema(table, function(err, schema) {
+		var	query = Parser.sql2ast( checkSQL(q) ),
+			cond = preCondiction(query.WHERE, schema),
+			rowData = compareSchema( data, schema );
+
+		self.DB.updateData(table, cond, {$set: rowData}, function(_err, _data) {
+			rs = _err? false: _data;
+
+			if(typeof(callback) == 'function') {
+				callback(_err, rs);
+			}
+			else {
+				console.log('update Data');
+				console.log(_err || _data);
+			}
+		});
+	});
+};
+ecDB.prototype.replaceData = function(table, id, data, callback) {
+	var self = this;
 	table = checkTable(table);
-	if(!table) { return false; }
+	if(!table) { callback(false, false); return false; }
 
 	var rs, check
-	,	schema = this.getSchema(table)
-	,	query = Parser.sql2ast("WHERE _id = " + id);
-	query.WHERE = preCondiction( query.WHERE, schema );
-	data = compareSchema(data, schema);
 
-	this.DB.checkID(table, id, function(err, _data) {
-		check = err? false: _data;
+	this.getSchema(table, function(err, schema) {
+		var	query = Parser.sql2ast("WHERE _id = " + id);
+		query.WHERE = preCondiction( query.WHERE, schema );
+		data = compareSchema(data, schema);
+
+		self.DB.checkID(table, id, function(_err) {
+			data._id = id;
+			self.DB.replaceData(table, query, data, function(__err) {
+				rs = __err? false: true;
+
+				if(typeof(callback) == 'function') {
+					callback(__err, rs);
+				}
+				else {
+					console.log('replace Data');
+					console.log(__err || rs);
+				}
+			});
+		});
 	});
-
-	while(check === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	data._id = id;
-	this.DB.replaceData(table, query, data, function(err, _data) {
-		rs = err? false: true;
-	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.putData = function(table, id, data) {
+ecDB.prototype.putData = function(table, id, data, callback) {
+	var self = this;
 	var label = table.label;
 	table = checkTable(table);
+	if(!table) { callback(false, false); return false; }
+	var rs, check, query = Parser.sql2ast("WHERE _id = " + id);
 
-	if(!table) { return false; }
+	this.getSchema(table, function(err, schema) {
+		if(dataSize(schema.columns) == 0) {
+			var valueSchema = getValueSchema(data);
+			if(label) {
+				var tableOBJ = {"name": table, "label": label};
+				self.setSchema(tableOBJ, valueSchema, function() {});
+			}
+			else {
+				self.setSchema(table, valueSchema, function() {});
+			}
 
-	var rs, check
-	,	schema = this.getSchema(table)
-	,	query = Parser.sql2ast("WHERE _id = " + id);
-
-	if(dataSize(schema.columns) == 0) {
-		if(label) {
-			var tableOBJ = {"name": table, "label": label};
-			this.setSchema(tableOBJ, getValueSchema(data));
+			schema = {columns: valueSchema};
 		}
-		else {
-			this.setSchema(table, getValueSchema(data));
-		}
+		schema.strict = !!schema.strict;
 
-		schema = this.getSchema(table);
-	}
+		query.WHERE = preCondiction( query.WHERE, schema );
+		data = compareSchema(data, schema);
 
-	query.WHERE = preCondiction( query.WHERE, schema );
-	data = compareSchema(data, schema);
+		self.DB.checkID(table, id, function(_err, _data) {
+			check = _err? false: _data;
+		});
 
-	this.DB.checkID(table, id, function(err, _data) {
-		check = err? false: _data;
+		newData = {$set: data};
+		self.DB.putData(table, query, newData, function(_err, _data) {
+			rs = _err? false: true;
+
+			if(typeof(callback) == 'function') {
+				callback(_err, rs);
+			}
+			else {
+				console.log('put Data');
+				console.log(_err || rs);
+			}
+		});
 	});
-
-	while(check === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	newData = {$set: data};
-	this.DB.putData(table, query, newData, function(err, _data) {
-		rs = err? false: true;
-	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
-ecDB.prototype.deleteData = function(table, query) {
+ecDB.prototype.deleteData = function(table, query, callback) {
+	var self = this;
 	table = checkTable(table);
 	if(!table) { return false; }
 
-	var rs,	cond
-	,	schema = this.getSchema(table);
+	var rs,	cond;
+	this.getSchema(table, function(err, schema) {
+		if(!!query.WHERE) {
+			cond = query;
+		}
+		else if(new RegExp('^[0-9]*$').test(query)) {
+			cond = Parser.sql2ast("WHERE _id = " + query);
+			cond.WHERE = preCondiction( cond.WHERE, schema );
+		}
+		else {
+			query = checkSQL(query);
 
-	if(new RegExp('^[0-9]*$').test(query)) {
-		cond = Parser.sql2ast("WHERE _id = " + query);
-		cond.WHERE = preCondiction( cond.WHERE, schema );
-	}
-	else {
-		query = checkSQL(query);
+			cond = Parser.sql2ast(query);console.log(query);
+			cond.WHERE = preCondiction( cond.WHERE, schema );
+		}
 
-		cond = Parser.sql2ast(query);
-		cond.WHERE = preCondiction( cond.WHERE, schema );
-	}
+		var x = 0;
+		for(var key in cond) {
+			x++;
+		}
+		if(x == 0) { return false; }
 
-	var x = 0;
-	for(var key in cond) {
-		x++;
-	}
-	if(x == 0) { return false; }
+		self.DB.deleteData(table, cond, function(_err, data) {
+			rs = _err? false: true;
 
-	this.DB.deleteData(table, cond, function(err, _data) {
-		rs = err? false: true;
+			if(typeof(callback) == 'function') {
+				callback(_err, rs);
+			}
+			else {
+				console.log('put Data');
+				console.log(_err || rs);
+			}
+		});
 	});
-
-	while(rs === undefined) {
-		require('deasync').runLoopOnce();
-	}
-
-	return rs;
 };
 
 module.exports = ecDB;
