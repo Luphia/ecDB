@@ -820,7 +820,7 @@ ecDB.prototype.dataFind = function(data, sql, callback) {
 ecDB.prototype.postData = function(table, data, callback) {
 	var self = this;
 	var check, rs, schema, id = [];
-	var label = table.label;
+	var label = !!table? table.label: '';
 	table = checkTable(table);
 	if(!table) { return false; }
 
