@@ -755,7 +755,7 @@ ecDB.prototype.getData = function(table, id, callback) {
 		});
 	});
 };
-ecDB.prototype.find = function(table, data, callback) {
+ecDB.prototype.find = function(table, query, callback) {
 	var self = this;
 	table = checkTable(table);
 	if(!table) {
@@ -763,7 +763,7 @@ ecDB.prototype.find = function(table, data, callback) {
 			callback(err, false);
 		}
 		else {
-			console.log('nothing to find');
+			callback(true);
 		}
 
 		return false;
@@ -771,7 +771,7 @@ ecDB.prototype.find = function(table, data, callback) {
 
 	var rs;
 	this.getSchema(table, function(err, schema) {
-		self.DB.find(table, data, function(_err, _data) {
+		self.DB.find(table, query, function(_err, _data) {
 			if(err) { rs = false; }
 			else {
 				rs = [];
