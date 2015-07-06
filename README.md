@@ -1,4 +1,7 @@
 # ecDB
+[![Build Status](https://travis-ci.org/Luphia/ecDB.png?branch=master)](https://travis-ci.org/Luphia/ecDB)
+[![Deps Status](https://david-dm.org/Luphia/ecDB.png)](https://david-dm.org/Luphia/ecDB)
+
 Make DB operation Easy
 
 ## Install
@@ -8,7 +11,7 @@ npm install ecdb
 ```
 
 ## Use
-```shell
+```node
 var ECDB = require('ecdb');
 var ecDB = new ECDB();
 ecDB.connect();
@@ -18,7 +21,7 @@ ecDB.listData('TableName');
 ```
 
 ## Use MongoDB
-```shell
+```node
 var ECDB = require('ecdb');
 var ecDB = new ECDB({"driver": "EasyMongo"});
 ecDB.connect({"url": "mongodb://127.0.0.1"});
