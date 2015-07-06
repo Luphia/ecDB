@@ -702,14 +702,17 @@ ecDB.prototype.pageData = function(table, query, callback) {
 	var rs
 	,	cond = Parser.sql2ast(query);
 
-	if(!cond.LIMIT) {
-		cond.LIMIT = {"nb": defaultLimit};
-	}
-	else if(!cond.LIMIT.nb) {
-		cond.LIMIT.nb = defaultLimit;
-	}
 
 	this.getSchema(table, function(err, schema) {
+		cond.WHERE = preCondiction( cond.WHERE, schema );
+
+		if(!cond.LIMIT) {
+			cond.LIMIT = {"nb": defaultLimit};
+		}
+		else if(!cond.LIMIT.nb) {
+			cond.LIMIT.nb = defaultLimit;
+		}
+
 		self.DB.pageData(table, cond, function(_err, data) {
 			rs = _err? false: data;
 			if(_err) { callback(_err); }
