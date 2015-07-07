@@ -15,9 +15,6 @@ npm install ecdb
 var ECDB = require('ecdb');
 var ecDB = new ECDB();
 ecDB.connect();
-
-ecDB.listTable();
-ecDB.listData('TableName');
 ```
 
 ## Use MongoDB
@@ -25,7 +22,50 @@ ecDB.listData('TableName');
 var ECDB = require('ecdb');
 var ecDB = new ECDB({"driver": "EasyMongo"});
 ecDB.connect({"url": "mongodb://127.0.0.1"});
+```
 
+## Insert Data
+ecDB would auto create the table and schema with your data
+* insert single row
+```node
+ecDB.postData(
+  'users',
+  {name: 'WEI', birth: '1982-04-01', age: 33},
+  function(error, result) {console.log(result);}
+);
+```
+*  insert multiple rows
+```node
+ecDB.postData(
+  'users',
+  [
+    {name: 'WEI', birth: '1982-04-01', age: 33},
+    {name: 'Becca', birth: '1985-07-18', age: 30},
+    {name: 'Gary', birth: '1989-12-11', age: 26}
+  ],
+  function(error, result) {console.log(result);}
+);
+```
+
+## List All Tables
+```node
 ecDB.listTable();
+```
+
+## Get Table Schema
+```node
+ecDB.getTable('users');
+```
+
+## List Data in Table
+* List all data
+```node
 ecDB.listData('TableName');
+```
+* You can also use search query
+```node
+ecDB.listData(
+  'users',
+  'where birth > "1988-01-01"'
+);
 ```
