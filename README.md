@@ -69,3 +69,18 @@ ecDB.listData(
   'where birth > "1988-01-01"'
 );
 ```
+
+## Serach JSON data
+```node
+ecDB.dataFind(
+  [
+    {path: '/aaa/bbb/ccc/'},
+    {path:'/aaa/bbb'},
+    {path:'/aaa/bbb/qqq/'}
+  ],
+  'where path like "*/bbb/*"',
+  function(error, result) {
+    console.log(result);
+  }
+);
+```
