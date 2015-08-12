@@ -70,7 +70,7 @@ ecDB.listData(
 );
 ```
 
-## Serach JSON data
+## Search JSON data
 ```node
 ecDB.dataFind(
   [
