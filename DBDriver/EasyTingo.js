@@ -105,7 +105,7 @@ EasyTingo.prototype.connect = function(option, callback) {
 	option.slashes = true;
 	option.host = dbURL.host;
 	option.port = dbURL.port;
-	option.pathname = !!dbURL.protocol? "." + dbURL.pathname: dbURL.pathname;
+	option.pathname = (!!dbURL.protocol && dbURL.protocol.length > 2)? "." + dbURL.pathname: dbURL.pathname;
 
 	if (!fs.existsSync(option.pathname)){
 		fs.mkdirSync(option.pathname);
@@ -193,7 +193,7 @@ EasyTingo.prototype.setSchema = function(table, schema, callback) {
 };
 EasyTingo.prototype.getID = function(table, callback) {
 	this.DB.collection('_tables').findAndModify(
-		{'name': table}, 
+		{'name': table},
 		['max_serial_num'],
 		{$inc: {"max_serial_num": 1}},
 		{},
@@ -206,7 +206,7 @@ EasyTingo.prototype.getID = function(table, callback) {
 };
 EasyTingo.prototype.getIDs = function(table, n, callback) {
 	this.DB.collection('_tables').findAndModify(
-		{'name': table}, 
+		{'name': table},
 		['max_serial_num'],
 		{$inc: {"max_serial_num": n}},
 		{},
