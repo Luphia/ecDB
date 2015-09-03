@@ -49,24 +49,25 @@ ecDB.postData(
 
 ## List All Tables
 ```node
-ecDB.listTable();
+ecDB.listTable(function(error, result) {console.log(result););
 ```
 
 ## Get Table Schema
 ```node
-ecDB.getTable('users');
+ecDB.getTable('users', function(error, result) {console.log(result););
 ```
 
 ## List Data in Table
 * List all data
 ```node
-ecDB.listData('TableName');
+ecDB.listData('TableName', function(error, result) {console.log(result););
 ```
 * You can also use search query
 ```node
 ecDB.listData(
   'users',
-  'where birth > "1988-01-01"'
+  'where birth > "1988-01-01"',
+  function(error, result) {console.log(result);
 );
 ```
 
