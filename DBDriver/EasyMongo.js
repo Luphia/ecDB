@@ -193,27 +193,27 @@ EasyMongo.prototype.setSchema = function(table, schema, callback) {
 };
 EasyMongo.prototype.getID = function(table, callback) {
 	this.DB.collection('_tables').findAndModify(
-		{'name': table}, 
+		{'name': table},
 		['max_serial_num'],
 		{$inc: {"max_serial_num": 1}},
 		{},
 		function(err, data) {
 			if(err) { callback(err); }
 			else if(!data) { callback(err, 1); }
-			else { callback(err, data.max_serial_num + 1); }
+			else { callback(err, data.value.max_serial_num + 1); }
 		}
 	);
 };
 EasyMongo.prototype.getIDs = function(table, n, callback) {
 	this.DB.collection('_tables').findAndModify(
-		{'name': table}, 
+		{'name': table},
 		['max_serial_num'],
 		{$inc: {"max_serial_num": n}},
 		{},
 		function(err, data) {
 			if(err) { callback(err); }
 			else if(!data) { callback(err, 1); }
-			else { callback(err, data.max_serial_num + 1); }
+			else { callback(err, data.value.max_serial_num + 1); }
 		}
 	);
 };
