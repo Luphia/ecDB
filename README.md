@@ -67,7 +67,7 @@ ecDB.listData('TableName', function(error, result) {console.log(result););
 ecDB.listData(
   'users',
   'where birth > "1988-01-01"',
-  function(error, result) {console.log(result);
+  function(error, result) {console.log(result);}
 );
 ```
 
