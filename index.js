@@ -981,7 +981,7 @@ ecDB.prototype.deleteData = function(table, query, callback) {
 		else {
 			query = checkSQL(query);
 
-			cond = Parser.sql2ast(query);console.log(query);
+			cond = Parser.sql2ast(query);
 			cond.WHERE = preCondiction( cond.WHERE, schema );
 		}
 
