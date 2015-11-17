@@ -758,8 +758,17 @@ ecDB.prototype.getData = function(table, id, callback) {
 		});
 	});
 };
-ecDB.prototype.find = function(table, query, callback) {
+ecDB.prototype.find = function(table, query, filter, callback) {
 	var self = this;
+	if(arguments.length == 3) {
+		if (typeof(arguments)[2] == 'function') {
+			callback = arguments[2];
+			filter = '';
+		}
+	}
+	filter = checkSQL(filter);
+	filter = Parser.sql2ast(filter);
+
 	table = checkTable(table);
 	if(!table) {
 		if(typeof(callback) == 'function') {
@@ -774,7 +783,7 @@ ecDB.prototype.find = function(table, query, callback) {
 
 	var rs;
 	this.getSchema(table, function(err, schema) {
-		self.DB.find(table, query, function(_err, _data) {
+		self.DB.find(table, query, filter, function(_err, _data) {
 			if(err) { rs = false; }
 			else {
 				rs = [];

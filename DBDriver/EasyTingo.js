@@ -413,11 +413,30 @@ EasyTingo.prototype.getData = function(table, query, callback) {
 		else { callback(err, false); }
 	});
 };
-EasyTingo.prototype.find = function(table, data, callback) {
-	this.DB.collection(table).find(data).toArray(function(err, _data) {
+EasyTingo.prototype.find = function(table, data, query, callback) {
+	var limit, sort = {}, orderBy;
+	var find = this.DB.collection(table).find(data);
+
+	if(orderBy = query['ORDER BY']) {
+		for(var k in orderBy) {
+			var column = orderBy[k]['column'];
+			sort[column] = orderBy[k]['order'].toUpperCase() == 'ASC'? 1: -1;
+		}
+		find = find.sort(sort);
+	}
+
+	if(limit = query.LIMIT) {
+		if(limit.nb > 0) {
+			find = find.limit(limit.nb);
+		}
+		if(limit.from > 0) {
+			find = find.skip(limit.from);
+		}
+	}
+
+	find.toArray(function(err, data) {
 		if(err) { callback(err); }
-		else if(_data.length > 0) { callback(err, _data); }
-		else { callback(err, false); }
+		else { callback(err, data); }
 	});
 };
 EasyTingo.prototype.postData = function(table, data, callback) {
