@@ -21,6 +21,6 @@
   "homepage": "https://github.com/Luphia/ecDB",
   "dependencies": {
     "mongodb": "^2.0.35",
-    "tingodb": "^0.3.5"
+    "tingodb": "^0.4.2"
   }
 }
