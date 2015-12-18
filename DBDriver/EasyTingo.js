@@ -105,7 +105,7 @@ EasyTingo.prototype.connect = function(option, callback) {
 	option.slashes = true;
 	option.host = dbURL.host;
 	option.port = dbURL.port;
-	option.pathname = (!!dbURL.protocol && dbURL.protocol.length > 2)? "." + dbURL.pathname: dbURL.href;
+	option.pathname = (!!dbURL.protocol && dbURL.protocol.length > 2)? "." + dbURL.pathname: decodeURIComponent(dbURL.href);
 
 	if (!fs.existsSync(option.pathname)){
 		fs.mkdirSync(option.pathname);
